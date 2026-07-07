@@ -20,6 +20,7 @@ RESPONSE_HEADERS = [
     "q3_1_child_image",
     "q3_2_child_count",
     "q3_3_child_feelings",
+    "q3_3_other_text",
     "q4_has_lover",
     "q4_1_marriage_intent",
     "q4_2_reasons",
