@@ -35,6 +35,15 @@
     }
     .hero h1 { margin: 0 0 8px; font-size: 1.5rem; }
     .hero p { margin: 0; opacity: 0.95; font-size: 0.95rem; }
+    .hero .privacy-notice {
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
     .errors {
       background: var(--error-bg);
       border: 1px solid var(--error-border);
@@ -161,6 +170,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>{{ title }}</h1>
+      <p class="privacy-notice">{{ privacy_notice }}</p>
       <p>{{ description }}</p>
     </div>
 
@@ -188,6 +198,11 @@
           </select>
         </div>
         {% endfor %}
+
+        <div class="field hidden" id="q1-other-field">
+          <label class="q-label required" for="q1_other_text">問1で「その他（回答を記述）」を選んだ場合、その内容を教えてください</label>
+          <textarea name="q1_other_text" id="q1_other_text">{{ form.get('q1_other_text', '') }}</textarea>
+        </div>
 
         <div class="rating-block hidden" id="q1-ratings">
           <p class="hint">選んだ3項目について、重要度を10段階で評価してください（{{ score_hint }}）</p>
@@ -222,6 +237,11 @@
           </select>
         </div>
         {% endfor %}
+
+        <div class="field hidden" id="q2-other-field">
+          <label class="q-label required" for="q2_other_text">問2で「その他（回答を記述）」を選んだ場合、その内容を教えてください</label>
+          <textarea name="q2_other_text" id="q2_other_text">{{ form.get('q2_other_text', '') }}</textarea>
+        </div>
 
         <div class="rating-block hidden" id="q2-ratings">
           <p class="hint">選んだ3項目について、重要度を10段階で評価してください（{{ score_hint }}）</p>
@@ -439,6 +459,26 @@
     toggleLoverSection();
 
     // 問1・問2: 同じ項目の重複選択を防止 + 5点評価の表示
+    const OTHER_LABEL = 'その他（回答を記述）';
+
+    function updateOtherField(group) {
+      const field = document.getElementById(group + '-other-field');
+      const textarea = document.getElementById(group + '_other_text');
+      if (!field || !textarea) return;
+      const ranks = ['1', '2', '3'].map(rank => {
+        const select = document.getElementById(group + '_rank' + rank);
+        return select ? select.value : '';
+      });
+      const show = ranks.includes(OTHER_LABEL);
+      field.classList.toggle('hidden', !show);
+      if (!show) {
+        textarea.value = '';
+        textarea.required = false;
+      } else {
+        textarea.required = true;
+      }
+    }
+
     function updateRatings(group) {
       const ratingsId = group + '-ratings';
       const ratingsEl = document.getElementById(ratingsId);
@@ -490,11 +530,14 @@
           }
         });
         updateRatings(group);
+        updateOtherField(group);
       });
     });
 
     updateRatings('q1');
     updateRatings('q2');
+    updateOtherField('q1');
+    updateOtherField('q2');
   </script>
 </body>
 </html>

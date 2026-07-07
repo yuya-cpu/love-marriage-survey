@@ -27,6 +27,7 @@ from survey_data import (
     CHILD_FEELINGS,
     CHILD_IMAGE,
     FORM_DESCRIPTION,
+    FORM_PRIVACY_NOTICE,
     FORM_TITLE,
     GENDER_OPTIONS,
     INCOME_OPTIONS,
@@ -50,11 +51,14 @@ app.secret_key = os.environ.get("SURVEY_SECRET", "love-marriage-survey-dev")
 
 CSV_HEADERS = RESPONSE_HEADERS
 
+OTHER_LABEL = "その他（回答を記述）"
+
 
 def _survey_template_kwargs(**extra):
     base = dict(
         title=FORM_TITLE,
         description=FORM_DESCRIPTION,
+        privacy_notice=FORM_PRIVACY_NOTICE,
         lover_conditions=LOVER_CONDITIONS,
         marriage_conditions=MARRIAGE_CONDITIONS,
         priority_ranks=PRIORITY_RANKS,
@@ -149,6 +153,14 @@ def submit():
         elif q4_1_intent in NOT_MARRY_INTENT_ANSWERS and not q4_2_reasons:
             errors.append("「4-2 その理由を教えてください」は1つ以上選択してください。")
 
+    # 問1 / 問2 で「その他（回答を記述）」をいずれかの順位で選んだ場合の自由記述
+    q1_ranks = [form.get("q1_rank1", ""), form.get("q1_rank2", ""), form.get("q1_rank3", "")]
+    q2_ranks = [form.get("q2_rank1", ""), form.get("q2_rank2", ""), form.get("q2_rank3", "")]
+    if OTHER_LABEL in q1_ranks and not form.get("q1_other_text", "").strip():
+        errors.append("「問1」で『その他（回答を記述）』を選んだ場合、内容を記入してください。")
+    if OTHER_LABEL in q2_ranks and not form.get("q2_other_text", "").strip():
+        errors.append("「問2」で『その他（回答を記述）』を選んだ場合、内容を記入してください。")
+
     if errors:
         return (
             render_template(
@@ -165,12 +177,14 @@ def submit():
         "q1_score1": form.get("q1_score1", ""),
         "q1_score2": form.get("q1_score2", ""),
         "q1_score3": form.get("q1_score3", ""),
+        "q1_other_text": form.get("q1_other_text", "") if OTHER_LABEL in q1_ranks else "",
         "q2_rank1": form.get("q2_rank1", ""),
         "q2_rank2": form.get("q2_rank2", ""),
         "q2_rank3": form.get("q2_rank3", ""),
         "q2_score1": form.get("q2_score1", ""),
         "q2_score2": form.get("q2_score2", ""),
         "q2_score3": form.get("q2_score3", ""),
+        "q2_other_text": form.get("q2_other_text", "") if OTHER_LABEL in q2_ranks else "",
         "q3_1_child_image": form.get("q3_1_child_image", ""),
         "q3_2_child_count": form.get("q3_2_child_count", ""),
         "q3_3_child_feelings": " / ".join(child_feelings),
