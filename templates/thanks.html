@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>送信完了 - {{ title }}</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+      background: #f7f5f2;
+      color: #2d2a26;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 480px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    }
+    h1 { color: #c45c6a; font-size: 1.4rem; margin: 0 0 12px; }
+    p { color: #6b6560; line-height: 1.7; }
+    .id { font-size: 0.85rem; color: #999; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ご回答ありがとうございました</h1>
+    <p>アンケートへのご協力、誠にありがとうございます。<br>回答は正常に記録されました。</p>
+    {% if response_id %}<p class="id">回答ID: {{ response_id }}</p>{% endif %}
+  </div>
+</body>
+</html>

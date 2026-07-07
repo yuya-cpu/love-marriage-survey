@@ -1,0 +1,10 @@
+credentials/
+.env
+.env.*
+token.pickle
+__pycache__/
+*.pyc
+python_portable/
+data/
+*.json
+!render.yaml

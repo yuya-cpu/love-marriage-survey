@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <style>
+    :root {
+      --bg: #f7f5f2;
+      --card: #ffffff;
+      --accent: #c45c6a;
+      --accent-dark: #a84855;
+      --text: #2d2a26;
+      --muted: #6b6560;
+      --border: #e8e2db;
+      --error-bg: #fff0f0;
+      --error-border: #e8a0a0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+    .hero {
+      background: linear-gradient(135deg, #c45c6a 0%, #d4896a 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(196, 92, 106, 0.25);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    .hero p { margin: 0; opacity: 0.95; font-size: 0.95rem; }
+    .errors {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .errors ul { margin: 8px 0 0; padding-left: 20px; }
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 20px;
+      margin-bottom: 16px;
+    }
+    .section h2 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      color: var(--accent-dark);
+    }
+    .section .hint {
+      margin: 0 0 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label.q-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    .field .required::after { content: " *"; color: var(--accent); }
+    select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: #fff;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .radio-group, .check-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .radio-group label, .check-group label {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-weight: normal;
+      cursor: pointer;
+      padding: 6px 0;
+    }
+    .radio-group input, .check-group input { margin-top: 4px; flex-shrink: 0; }
+    .score-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .score-group label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .score-group label:has(input:checked) {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .score-group input { display: none; }
+    .rating-block {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+    }
+    .rating-item {
+      margin-bottom: 14px;
+      padding: 12px;
+      background: #faf8f6;
+      border-radius: 8px;
+    }
+    .rating-item .item-name {
+      font-size: 0.9rem;
+      color: var(--accent-dark);
+      margin-bottom: 6px;
+    }
+    .hidden { display: none !important; }
+    .submit-bar {
+      position: sticky;
+      bottom: 0;
+      background: rgba(247, 245, 242, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 16px 0;
+      margin-top: 8px;
+    }
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button[type="submit"]:hover { background: var(--accent-dark); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>{{ title }}</h1>
+      <p>{{ description }}</p>
+    </div>
+
+    {% if errors %}
+    <div class="errors">
+      <strong>入力内容をご確認ください</strong>
+      <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/submit" id="survey-form">
+
+      <!-- 問1 -->
+      <div class="section">
+        <h2>1. 現在、恋人に求める条件は何ですか？</h2>
+        <p class="hint">重要だと思うものを優先順位順に3つ選んでください（同じ項目は選べません）。</p>
+        {% for rank, desc in priority_ranks %}
+        <div class="field">
+          <label class="q-label required" for="q1_rank{{ rank }}">1-{{ rank }}位: {{ desc }}</label>
+          <select name="q1_rank{{ rank }}" id="q1_rank{{ rank }}" class="priority-select" data-group="q1" required>
+            <option value="">選択してください</option>
+            {% for opt in lover_conditions %}
+            <option value="{{ opt }}" {% if form.get('q1_rank' ~ rank) == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+
+        <div class="rating-block hidden" id="q1-ratings">
+          <p class="hint">選んだ3項目について、重要度を10段階で評価してください（{{ score_hint }}）</p>
+          {% for rank, desc in priority_ranks %}
+          <div class="rating-item hidden" id="q1-rating-{{ rank }}">
+            <div class="item-name q-label required"><span class="q1-item-label-{{ rank }}">—</span>（{{ rank }}位）</div>
+            <div class="score-group">
+              {% for s in score_options %}
+              <label>
+                <input type="radio" name="q1_score{{ rank }}" value="{{ s }}" class="q1-score" data-rank="{{ rank }}"
+                  {% if form.get('q1_score' ~ rank) == s %}checked{% endif %}> {{ s }}点
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 問2 -->
+      <div class="section">
+        <h2>2. もし今結婚するとしたら、相手に求める条件は何ですか？</h2>
+        <p class="hint">重要だと思うものを優先順位順に3つ選んでください（同じ項目は選べません）。</p>
+        {% for rank, desc in priority_ranks %}
+        <div class="field">
+          <label class="q-label required" for="q2_rank{{ rank }}">2-{{ rank }}位: {{ desc }}</label>
+          <select name="q2_rank{{ rank }}" id="q2_rank{{ rank }}" class="priority-select" data-group="q2" required>
+            <option value="">選択してください</option>
+            {% for opt in marriage_conditions %}
+            <option value="{{ opt }}" {% if form.get('q2_rank' ~ rank) == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+
+        <div class="rating-block hidden" id="q2-ratings">
+          <p class="hint">選んだ3項目について、重要度を10段階で評価してください（{{ score_hint }}）</p>
+          {% for rank, desc in priority_ranks %}
+          <div class="rating-item hidden" id="q2-rating-{{ rank }}">
+            <div class="item-name q-label required"><span class="q2-item-label-{{ rank }}">—</span>（{{ rank }}位）</div>
+            <div class="score-group">
+              {% for s in score_options %}
+              <label>
+                <input type="radio" name="q2_score{{ rank }}" value="{{ s }}" class="q2-score" data-rank="{{ rank }}"
+                  {% if form.get('q2_score' ~ rank) == s %}checked{% endif %}> {{ s }}点
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 問3 -->
+      <div class="section">
+        <h2>3. 子どもについての考えを教えてください</h2>
+        <div class="field">
+          <label class="q-label required">3-1. 子どもを持つことにどのようなイメージがありますか？</label>
+          <div class="radio-group">
+            {% for opt in child_image %}
+            <label><input type="radio" name="q3_1_child_image" value="{{ opt }}" {% if form.get('q3_1_child_image') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label required">3-2. 子どもは何人ほしいですか？</label>
+          <div class="radio-group">
+            {% for opt in child_count %}
+            <label><input type="radio" name="q3_2_child_count" value="{{ opt }}" {% if form.get('q3_2_child_count') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label required">3-3. 子どもを持つことについて感じること（複数選択可）</label>
+          <div class="check-group">
+            {% for opt in child_feelings %}
+            <label><input type="checkbox" name="q3_3_child_feelings" value="{{ opt }}"> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- 問4 -->
+      <div class="section">
+        <h2>4. 現在、恋人はいますか？</h2>
+        <div class="field">
+          <div class="radio-group">
+            <label><input type="radio" name="q4_has_lover" value="いる" id="lover-yes" {% if form.get('q4_has_lover') == 'いる' %}checked{% endif %} required> いる</label>
+            <label><input type="radio" name="q4_has_lover" value="いない" id="lover-no" {% if form.get('q4_has_lover') == 'いない' %}checked{% endif %}> いない</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4-1, 4-2 -->
+      <div class="section hidden" id="lover-section">
+        <h2>恋人がいる方へ</h2>
+        <div class="field">
+          <label class="q-label required">4-1. 現在の恋人と結婚したいと思いますか？</label>
+          <p class="hint">※「いる」と回答した人のみ</p>
+          <div class="radio-group">
+            {% for opt in marriage_wish %}
+            <label><input type="radio" name="q4_1_marriage_intent" value="{{ opt }}" class="lover-required q4-1-intent"
+              {% if form.get('q4_1_marriage_intent') == opt %}checked{% endif %}> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field hidden" id="not-marry-reasons-section">
+          <label class="q-label required">4-2. その理由を教えてください（複数選択可）</label>
+          <p class="hint">※「結婚したくない」「あまり結婚したくない」と回答した人のみ</p>
+          <div class="check-group">
+            {% for opt in lover_not_marry_reasons %}
+            <label><input type="checkbox" name="q4_2_reasons" value="{{ opt }}" class="not-marry-reason"
+              {% if opt in q4_2_reasons_selected %}checked{% endif %}> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- 問5 -->
+      <div class="section">
+        <h2>5. あなた自身の結婚願望について教えてください</h2>
+        <div class="field">
+          <label class="q-label required">5-1. 将来的に結婚したいと思いますか？</label>
+          <div class="radio-group">
+            {% for opt in marriage_wish %}
+            <label><input type="radio" name="q5_1_marriage_wish" value="{{ opt }}" {% if form.get('q5_1_marriage_wish') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label" for="q5_2_reason">5-2. その理由を教えてください</label>
+          <textarea name="q5_2_reason" id="q5_2_reason">{{ form.get('q5_2_reason', '') }}</textarea>
+        </div>
+      </div>
+
+      <!-- 問6 -->
+      <div class="section">
+        <h2>6. 大学生・大学院生向けの「結婚を見据えたマッチングアプリ」があった場合、利用したいと思いますか？</h2>
+        <div class="field">
+          <div class="radio-group">
+            {% for opt in app_intent %}
+            <label><input type="radio" name="q6_app_intent" value="{{ opt }}" {% if form.get('q6_app_intent') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label" for="q6_1_reason">6-1. その理由を教えてください</label>
+          <textarea name="q6_1_reason" id="q6_1_reason">{{ form.get('q6_1_reason', '') }}</textarea>
+        </div>
+      </div>
+
+      <!-- 問7 -->
+      <div class="section">
+        <h2>7. 属性質問（回答者の背景）</h2>
+        <div class="field">
+          <label class="q-label required" for="age">年齢</label>
+          <select name="age" id="age" required>
+            <option value="">選択してください</option>
+            {% for opt in age_options %}
+            <option value="{{ opt }}" {% if form.get('age') == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label class="q-label required">性別</label>
+          <div class="radio-group">
+            {% for opt in gender_options %}
+            <label><input type="radio" name="gender" value="{{ opt }}" {% if form.get('gender') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label required">所属</label>
+          <div class="radio-group">
+            {% for opt in affiliation_options %}
+            <label><input type="radio" name="affiliation" value="{{ opt }}" {% if form.get('affiliation') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label required">居住形態</label>
+          <div class="radio-group">
+            {% for opt in living_options %}
+            <label><input type="radio" name="living" value="{{ opt }}" {% if form.get('living') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label required">兄弟姉妹の人数</label>
+          <div class="radio-group">
+            {% for opt in siblings_options %}
+            <label><input type="radio" name="siblings" value="{{ opt }}" {% if form.get('siblings') == opt %}checked{% endif %} required> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="q-label">世帯収入（概算）</label>
+          <div class="radio-group">
+            {% for opt in income_options %}
+            <label><input type="radio" name="income" value="{{ opt }}" {% if form.get('income') == opt %}checked{% endif %}> {{ opt }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-bar">
+        <button type="submit">回答を送信する</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // 問4: 恋人がいる場合のみ 4-1, 4-2 を表示
+    const loverSection = document.getElementById('lover-section');
+    const loverYes = document.getElementById('lover-yes');
+    const loverNo = document.getElementById('lover-no');
+    const loverRequired = document.querySelectorAll('.lover-required');
+    const notMarrySection = document.getElementById('not-marry-reasons-section');
+    const notMarryReasons = document.querySelectorAll('.not-marry-reason');
+    const notMarryAnswers = {{ not_marry_answers | tojson }};
+
+    function toggleNotMarryReasons() {
+      const selected = document.querySelector('input[name="q4_1_marriage_intent"]:checked');
+      const show = selected && notMarryAnswers.includes(selected.value);
+      notMarrySection.classList.toggle('hidden', !show);
+      if (!show) {
+        notMarryReasons.forEach(el => { el.checked = false; });
+      }
+    }
+
+    function toggleLoverSection() {
+      const show = loverYes.checked;
+      loverSection.classList.toggle('hidden', !show);
+      loverRequired.forEach(el => { el.required = show; });
+      if (!show) {
+        loverRequired.forEach(el => { el.checked = false; });
+        notMarryReasons.forEach(el => { el.checked = false; });
+        notMarrySection.classList.add('hidden');
+      } else {
+        toggleNotMarryReasons();
+      }
+    }
+
+    document.querySelectorAll('.q4-1-intent').forEach(el => {
+      el.addEventListener('change', toggleNotMarryReasons);
+    });
+    loverYes.addEventListener('change', toggleLoverSection);
+    loverNo.addEventListener('change', toggleLoverSection);
+    toggleLoverSection();
+
+    // 問1・問2: 同じ項目の重複選択を防止 + 5点評価の表示
+    function updateRatings(group) {
+      const ratingsId = group + '-ratings';
+      const ratingsEl = document.getElementById(ratingsId);
+      let allSelected = true;
+
+      ['1', '2', '3'].forEach(rank => {
+        const select = document.getElementById(group + '_rank' + rank);
+        const ratingItem = document.getElementById(group + '-rating-' + rank);
+        const labelEl = document.querySelector('.' + group + '-item-label-' + rank);
+        const scoreInputs = document.querySelectorAll('.' + group + '-score[data-rank="' + rank + '"]');
+
+        if (select && select.value) {
+          ratingItem.classList.remove('hidden');
+          labelEl.textContent = '「' + select.value + '」';
+        } else {
+          allSelected = false;
+          ratingItem.classList.add('hidden');
+          labelEl.textContent = '—';
+          scoreInputs.forEach(inp => { inp.checked = false; inp.required = false; });
+        }
+      });
+
+      if (allSelected) {
+        ratingsEl.classList.remove('hidden');
+        document.querySelectorAll('.' + group + '-score').forEach(inp => { inp.required = true; });
+      } else {
+        ratingsEl.classList.add('hidden');
+        document.querySelectorAll('.' + group + '-score').forEach(inp => { inp.required = false; });
+      }
+    }
+
+    document.querySelectorAll('.priority-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const group = select.dataset.group;
+        const rank = select.id.replace(group + '_rank', '');
+        document.querySelectorAll('.' + group + '-score[data-rank="' + rank + '"]').forEach(inp => {
+          inp.checked = false;
+        });
+        const siblings = document.querySelectorAll('.priority-select[data-group="' + group + '"]');
+        const selected = new Set();
+        siblings.forEach(s => {
+          if (s.value) {
+            if (selected.has(s.value)) {
+              alert('同じ項目は選べません。別の項目を選んでください。');
+              s.value = '';
+            } else {
+              selected.add(s.value);
+            }
+          }
+        });
+        updateRatings(group);
+      });
+    });
+
+    updateRatings('q1');
+    updateRatings('q2');
+  </script>
+</body>
+</html>
