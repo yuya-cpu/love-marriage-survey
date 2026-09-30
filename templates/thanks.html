@@ -32,7 +32,11 @@
   <div class="card">
     <h1>ご回答ありがとうございました</h1>
     <p>アンケートへのご協力、誠にありがとうございます。<br>回答は正常に記録されました。</p>
-    {% if response_id %}<p class="id">回答ID: {{ response_id }}</p>{% endif %}
+    {% if response_id and response_id != 'already-submitted' %}
+    <p class="id">回答ID: {{ response_id }}</p>
+    {% elif response_id == 'already-submitted' %}
+    <p>この回答はすでに送信済みです。重複登録は行われていません。</p>
+    {% endif %}
   </div>
 </body>
 </html>

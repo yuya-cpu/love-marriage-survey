@@ -164,6 +164,11 @@
       transition: background 0.2s;
     }
     button[type="submit"]:hover { background: var(--accent-dark); }
+    button[type="submit"]:disabled {
+      background: #b89a9e;
+      cursor: not-allowed;
+      opacity: 0.75;
+    }
   </style>
 </head>
 <body>
@@ -182,6 +187,7 @@
     {% endif %}
 
     <form method="post" action="/submit" id="survey-form">
+      <input type="hidden" name="submit_token" value="{{ submit_token }}">
 
       <!-- 問1 -->
       <div class="section">
@@ -284,9 +290,13 @@
           <label class="q-label required">3-3. 子どもを持つことについて感じること（複数選択可）</label>
           <div class="check-group">
             {% for opt in child_feelings %}
-            <label><input type="checkbox" name="q3_3_child_feelings" value="{{ opt }}"> {{ opt }}</label>
+            <label><input type="checkbox" name="q3_3_child_feelings" value="{{ opt }}" {% if opt in q3_3_selected %}checked{% endif %}> {{ opt }}</label>
             {% endfor %}
           </div>
+        </div>
+        <div class="field hidden" id="q3-3-other-field">
+          <label class="q-label required" for="q3_3_other_text">3-3で「その他（回答を記述）」を選んだ場合、その内容を教えてください</label>
+          <textarea name="q3_3_other_text" id="q3_3_other_text">{{ form.get('q3_3_other_text', '') }}</textarea>
         </div>
       </div>
 
@@ -414,7 +424,7 @@
       </div>
 
       <div class="submit-bar">
-        <button type="submit">回答を送信する</button>
+        <button type="submit" id="submit-btn">回答を送信する</button>
       </div>
     </form>
   </div>
@@ -538,6 +548,43 @@
     updateRatings('q2');
     updateOtherField('q1');
     updateOtherField('q2');
+
+    // 問3-3: 「その他（回答を記述）」選択時のみ自由記述を表示
+    function toggleQ33OtherField() {
+      const checkboxes = document.querySelectorAll('input[name="q3_3_child_feelings"]');
+      const otherField = document.getElementById('q3-3-other-field');
+      const otherTextarea = document.getElementById('q3_3_other_text');
+      if (!otherField || !otherTextarea) return;
+      const show = Array.from(checkboxes).some(cb => cb.checked && cb.value === OTHER_LABEL);
+      otherField.classList.toggle('hidden', !show);
+      if (!show) {
+        otherTextarea.value = '';
+        otherTextarea.required = false;
+      } else {
+        otherTextarea.required = true;
+      }
+    }
+
+    document.querySelectorAll('input[name="q3_3_child_feelings"]').forEach(el => {
+      el.addEventListener('change', toggleQ33OtherField);
+    });
+    toggleQ33OtherField();
+
+    // 送信ボタン連打による二重送信を防止
+    const surveyForm = document.getElementById('survey-form');
+    const submitBtn = document.getElementById('submit-btn');
+    let isSubmitting = false;
+    if (surveyForm && submitBtn) {
+      surveyForm.addEventListener('submit', (event) => {
+        if (isSubmitting) {
+          event.preventDefault();
+          return;
+        }
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '送信中…';
+      });
+    }
   </script>
 </body>
 </html>

@@ -15,7 +15,9 @@ try:
 except ImportError:
     pass
 
-from flask import Flask, redirect, render_template, request, send_file, url_for
+import secrets
+
+from flask import Flask, redirect, render_template, request, send_file, session, url_for
 
 from response_schema import RESPONSE_HEADERS
 from storage import SaveResponseError, load_responses, save_response
@@ -52,6 +54,31 @@ app.secret_key = os.environ.get("SURVEY_SECRET", "love-marriage-survey-dev")
 CSV_HEADERS = RESPONSE_HEADERS
 
 OTHER_LABEL = "その他（回答を記述）"
+_USED_SUBMIT_TOKENS: set[str] = set()
+_USED_SUBMIT_TOKENS_MAX = 2000
+
+
+def _issue_submit_token() -> str:
+    token = secrets.token_urlsafe(24)
+    session["submit_token"] = token
+    return token
+
+
+def _consume_submit_token(token: str) -> bool:
+    token = (token or "").strip()
+    if not token:
+        return False
+    if token in _USED_SUBMIT_TOKENS:
+        return False
+    expected = session.pop("submit_token", None)
+    if not expected or not secrets.compare_digest(expected, token):
+        return False
+    _USED_SUBMIT_TOKENS.add(token)
+    if len(_USED_SUBMIT_TOKENS) > _USED_SUBMIT_TOKENS_MAX:
+        # 古い分を間引く（厳密なFIFOではないが連打対策には十分）
+        for old in list(_USED_SUBMIT_TOKENS)[: len(_USED_SUBMIT_TOKENS) - _USED_SUBMIT_TOKENS_MAX // 2]:
+            _USED_SUBMIT_TOKENS.discard(old)
+    return True
 
 
 def _survey_template_kwargs(**extra):
@@ -77,6 +104,7 @@ def _survey_template_kwargs(**extra):
         living_options=LIVING_OPTIONS,
         siblings_options=SIBLINGS_OPTIONS,
         income_options=INCOME_OPTIONS,
+        submit_token=_issue_submit_token(),
     )
     base.update(extra)
     return base
@@ -110,7 +138,7 @@ def validate_scores(prefix: str, label: str) -> list[str]:
 def index():
     return render_template(
         "survey.html",
-        **_survey_template_kwargs(errors=[], form={}, q4_2_reasons_selected=[]),
+        **_survey_template_kwargs(errors=[], form={}, q4_2_reasons_selected=[], q3_3_selected=[]),
     )
 
 
@@ -118,6 +146,9 @@ def index():
 def submit():
     errors: list[str] = []
     form = {k: v for k, v in request.form.items()}
+
+    if not _consume_submit_token(form.get("submit_token", "")):
+        return redirect(url_for("thanks", rid="already-submitted"))
 
     errors.extend(validate_priority(["q1_rank1", "q1_rank2", "q1_rank3"], LOVER_CONDITIONS, "q1"))
     errors.extend(validate_priority(["q2_rank1", "q2_rank2", "q2_rank3"], MARRIAGE_CONDITIONS, "q2"))
@@ -143,6 +174,8 @@ def submit():
     child_feelings = request.form.getlist("q3_3_child_feelings")
     if not child_feelings:
         errors.append("「3-3 子どもを持つことについて感じること」は1つ以上選択してください。")
+    if OTHER_LABEL in child_feelings and not form.get("q3_3_other_text", "").strip():
+        errors.append("「3-3」で『その他（回答を記述）』を選んだ場合、内容を記入してください。")
 
     has_lover = form.get("q4_has_lover", "")
     q4_1_intent = form.get("q4_1_marriage_intent", "")
@@ -165,7 +198,12 @@ def submit():
         return (
             render_template(
                 "survey.html",
-                **_survey_template_kwargs(errors=errors, form=form, q4_2_reasons_selected=q4_2_reasons),
+                **_survey_template_kwargs(
+                    errors=errors,
+                    form=form,
+                    q4_2_reasons_selected=q4_2_reasons,
+                    q3_3_selected=child_feelings,
+                ),
             ),
             400,
         )
@@ -188,6 +226,7 @@ def submit():
         "q3_1_child_image": form.get("q3_1_child_image", ""),
         "q3_2_child_count": form.get("q3_2_child_count", ""),
         "q3_3_child_feelings": " / ".join(child_feelings),
+        "q3_3_other_text": form.get("q3_3_other_text", "") if OTHER_LABEL in child_feelings else "",
         "q4_has_lover": has_lover,
         "q4_1_marriage_intent": q4_1_intent if has_lover == "いる" else "",
         "q4_2_reasons": " / ".join(q4_2_reasons) if has_lover == "いる" and q4_1_intent in NOT_MARRY_INTENT_ANSWERS else "",
