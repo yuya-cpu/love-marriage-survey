@@ -1,3 +1,0 @@
-prepare_render_env.py
-deploy_render.bat
-RENDER_QUICKSTART.md

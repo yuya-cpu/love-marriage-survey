@@ -11,7 +11,7 @@ set PYEXE=
 where python >nul 2>&1 && python --version >nul 2>&1 && set PYEXE=python
 if not defined PYEXE where py >nul 2>&1 && py --version >nul 2>&1 && set PYEXE=py
 if not defined PYEXE (
-    echo Python が見つかりません。start.bat の対処法を参照してください。
+    echo Python が見つかりません。
     pause
     exit /b 1
 )
